@@ -71,18 +71,20 @@ async def generate_urs(request: GenerateRequest):
     
     from routers.clarify import clarifying_questions, answers
     
-    # Check if clarification is complete
+    # Check if clarification is complete (skip check for MVP - always allow generation)
     questions = clarifying_questions.get(session_id, [])
     session_answers = answers.get(session_id, [])
     answered_ids = {a.question_id for a in session_answers}
     unanswered = [q for q in questions if q.question_id not in answered_ids]
     
-    if unanswered and not request.skip_clarification:
-        raise HTTPException(
-            status_code=400,
-            detail=f"{len(unanswered)} clarifying questions remain unanswered. "
-                   f"Answer them or set skip_clarification=true."
-        )
+    # For MVP, we skip the clarification check since we're not using it
+    # The frontend always passes skip_clarification=true anyway
+    # if unanswered and not request.skip_clarification:
+    #     raise HTTPException(
+    #         status_code=400,
+    #         detail=f"{len(unanswered)} clarifying questions remain unanswered. "
+    #                f"Answer them or set skip_clarification=true."
+    #     )
     
     # Get all chunks for this session
     session_chunks = [chunks[cid] for cid in session.get("chunk_ids", []) if cid in chunks]
