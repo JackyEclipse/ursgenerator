@@ -86,11 +86,16 @@ async def ingest_sources(
     urs_id = generate_urs_id()
     source_id = f"src-{session_id[:8]}"
     
+    # Sanitize title - truncate if too long
+    safe_title = (title or "Untitled Request")[:200].strip()
+    if not safe_title:
+        safe_title = "Untitled Request"
+    
     # Create session
     sessions[session_id] = {
         "urs_id": urs_id,
         "source_id": source_id,
-        "title": title,
+        "title": safe_title,
         "requestor": {"name": requestor_name, "email": requestor_email},
         "department": department,
         "data_classification": data_classification,
