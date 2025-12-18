@@ -1,0 +1,606 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://internal.company.com/schemas/urs/v1",
+  "title": "User Requirements Specification (URS)",
+  "description": "Canonical schema for structured, traceable, and approval-ready URS documents",
+  "type": "object",
+  "required": [
+    "metadata",
+    "executive_summary",
+    "problem_statement",
+    "scope",
+    "functional_requirements"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["id", "title", "requestor", "department", "status", "owner", "data_classification"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^URS-[0-9]{4}-[0-9]{4}$",
+          "description": "Unique identifier (e.g., URS-2024-0001)"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 200,
+          "description": "Descriptive title for the requirement"
+        },
+        "requestor": {
+          "type": "object",
+          "required": ["name", "email"],
+          "properties": {
+            "name": { "type": "string" },
+            "email": { "type": "string", "format": "email" },
+            "department": { "type": "string" }
+          }
+        },
+        "department": {
+          "type": "string",
+          "description": "Owning department"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "in_review", "approved", "rejected", "on_hold", "superseded"],
+          "default": "draft"
+        },
+        "owner": {
+          "type": "object",
+          "required": ["name", "email"],
+          "properties": {
+            "name": { "type": "string" },
+            "email": { "type": "string", "format": "email" },
+            "role": { "type": "string" }
+          }
+        },
+        "data_classification": {
+          "type": "string",
+          "enum": ["INTERNAL", "CONFIDENTIAL"],
+          "default": "INTERNAL"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "target_completion_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "executive_summary": {
+      "type": "object",
+      "required": ["summary", "business_value"],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 50,
+          "maxLength": 1000,
+          "description": "2-3 sentence overview of what is being requested and why"
+        },
+        "business_value": {
+          "type": "string",
+          "description": "Quantifiable or qualitative business impact"
+        },
+        "source_references": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/source_reference" }
+        }
+      }
+    },
+    "problem_statement": {
+      "type": "object",
+      "required": ["current_state", "pain_points", "desired_state"],
+      "properties": {
+        "current_state": {
+          "type": "string",
+          "description": "Description of how things work today"
+        },
+        "pain_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["description"],
+            "properties": {
+              "description": { "type": "string" },
+              "impact": { "type": "string" },
+              "frequency": { "type": "string" },
+              "source_references": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/source_reference" }
+              }
+            }
+          }
+        },
+        "desired_state": {
+          "type": "string",
+          "description": "What success looks like"
+        },
+        "source_references": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/source_reference" }
+        }
+      }
+    },
+    "users_and_personas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["persona_id", "name", "role"],
+        "properties": {
+          "persona_id": { "type": "string" },
+          "name": { "type": "string" },
+          "role": { "type": "string" },
+          "responsibilities": { "type": "string" },
+          "goals": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "pain_points": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "frequency_of_use": {
+            "type": "string",
+            "enum": ["daily", "weekly", "monthly", "occasional"]
+          },
+          "technical_proficiency": {
+            "type": "string",
+            "enum": ["novice", "intermediate", "advanced", "expert"]
+          }
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "required": ["in_scope", "out_of_scope"],
+      "properties": {
+        "in_scope": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["item"],
+            "properties": {
+              "item": { "type": "string" },
+              "rationale": { "type": "string" },
+              "source_references": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/source_reference" }
+              }
+            }
+          }
+        },
+        "out_of_scope": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["item"],
+            "properties": {
+              "item": { "type": "string" },
+              "rationale": { "type": "string" },
+              "future_consideration": { "type": "boolean", "default": false }
+            }
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["assumption", "is_validated"],
+            "properties": {
+              "assumption_id": { "type": "string" },
+              "assumption": { "type": "string" },
+              "is_validated": { "type": "boolean", "default": false },
+              "validated_by": { "type": "string" },
+              "validation_date": { "type": "string", "format": "date" },
+              "risk_if_wrong": { "type": "string" }
+            }
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["dependency"],
+            "properties": {
+              "dependency_id": { "type": "string" },
+              "dependency": { "type": "string" },
+              "type": {
+                "type": "string",
+                "enum": ["system", "team", "external", "regulatory", "data"]
+              },
+              "owner": { "type": "string" },
+              "status": {
+                "type": "string",
+                "enum": ["identified", "confirmed", "blocked", "resolved"]
+              }
+            }
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["constraint"],
+            "properties": {
+              "constraint": { "type": "string" },
+              "type": {
+                "type": "string",
+                "enum": ["technical", "budget", "timeline", "regulatory", "resource"]
+              },
+              "impact": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "functional_requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/functional_requirement" }
+    },
+    "non_functional_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["requirement_id", "category", "description"],
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "pattern": "^NFR-[0-9]{3}$"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "performance",
+              "scalability",
+              "availability",
+              "security",
+              "usability",
+              "accessibility",
+              "maintainability",
+              "compliance",
+              "interoperability"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "The system shall... format"
+          },
+          "target_metric": { "type": "string" },
+          "measurement_method": { "type": "string" },
+          "priority": {
+            "type": "string",
+            "enum": ["Must", "Should", "Could"]
+          },
+          "source_references": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/source_reference" }
+          },
+          "confidence_level": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          }
+        }
+      }
+    },
+    "data_requirements": {
+      "type": "object",
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "description"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "source_system": { "type": "string" },
+              "format": { "type": "string" },
+              "frequency": { "type": "string" },
+              "volume": { "type": "string" },
+              "data_classification": {
+                "type": "string",
+                "enum": ["public", "internal", "confidential", "restricted"]
+              }
+            }
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "description"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "destination_system": { "type": "string" },
+              "format": { "type": "string" },
+              "frequency": { "type": "string" }
+            }
+          }
+        },
+        "quality_rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["rule"],
+            "properties": {
+              "rule_id": { "type": "string" },
+              "rule": { "type": "string" },
+              "applies_to": { "type": "string" },
+              "validation_method": { "type": "string" }
+            }
+          }
+        },
+        "retention_requirements": {
+          "type": "object",
+          "properties": {
+            "retention_period": { "type": "string" },
+            "archival_policy": { "type": "string" },
+            "deletion_policy": { "type": "string" }
+          }
+        }
+      }
+    },
+    "workflow_description": {
+      "type": "object",
+      "properties": {
+        "overview": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["step_number", "description"],
+            "properties": {
+              "step_number": { "type": "integer" },
+              "description": { "type": "string" },
+              "actor": { "type": "string" },
+              "system": { "type": "string" },
+              "inputs": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "outputs": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "decision_points": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "exception": { "type": "string" },
+              "handling": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "risks_and_open_questions": {
+      "type": "object",
+      "properties": {
+        "risks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["risk_id", "description", "likelihood", "impact"],
+            "properties": {
+              "risk_id": { "type": "string" },
+              "description": { "type": "string" },
+              "likelihood": {
+                "type": "string",
+                "enum": ["low", "medium", "high"]
+              },
+              "impact": {
+                "type": "string",
+                "enum": ["low", "medium", "high"]
+              },
+              "mitigation": { "type": "string" },
+              "owner": { "type": "string" }
+            }
+          }
+        },
+        "open_questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["question_id", "question"],
+            "properties": {
+              "question_id": { "type": "string" },
+              "question": { "type": "string" },
+              "context": { "type": "string" },
+              "assigned_to": { "type": "string" },
+              "due_date": { "type": "string", "format": "date" },
+              "status": {
+                "type": "string",
+                "enum": ["open", "answered", "blocked"]
+              },
+              "answer": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "success_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["metric_id", "name", "target"],
+        "properties": {
+          "metric_id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "baseline": { "type": "string" },
+          "target": { "type": "string" },
+          "measurement_method": { "type": "string" },
+          "measurement_frequency": { "type": "string" }
+        }
+      }
+    },
+    "version_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["version", "date", "author", "changes"],
+        "properties": {
+          "version": { "type": "string" },
+          "date": { "type": "string", "format": "date-time" },
+          "author": { "type": "string" },
+          "changes": { "type": "string" },
+          "approved_by": { "type": "string" }
+        }
+      }
+    },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "status"],
+        "properties": {
+          "role": { "type": "string" },
+          "approver_name": { "type": "string" },
+          "approver_email": { "type": "string", "format": "email" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "approved", "rejected", "conditional"]
+          },
+          "comments": { "type": "string" },
+          "date": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "_generation_metadata": {
+      "type": "object",
+      "description": "Metadata about how this URS was generated",
+      "properties": {
+        "generated_at": { "type": "string", "format": "date-time" },
+        "llm_model": { "type": "string" },
+        "source_chunk_count": { "type": "integer" },
+        "qa_score": {
+          "type": "object",
+          "properties": {
+            "completeness": { "type": "number", "minimum": 0, "maximum": 100 },
+            "clarity": { "type": "number", "minimum": 0, "maximum": 100 },
+            "testability": { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "assumptions_count": { "type": "integer" },
+        "low_confidence_count": { "type": "integer" }
+      }
+    }
+  },
+  "definitions": {
+    "source_reference": {
+      "type": "object",
+      "required": ["chunk_id"],
+      "properties": {
+        "chunk_id": {
+          "type": "string",
+          "description": "Unique ID of the source chunk"
+        },
+        "source_type": {
+          "type": "string",
+          "enum": ["document", "email", "meeting_notes", "interview", "screenshot", "link", "user_input"]
+        },
+        "source_name": { "type": "string" },
+        "excerpt": {
+          "type": "string",
+          "description": "Relevant excerpt from source"
+        },
+        "is_assumption": {
+          "type": "boolean",
+          "default": false,
+          "description": "True if this was inferred by LLM without explicit source"
+        }
+      }
+    },
+    "functional_requirement": {
+      "type": "object",
+      "required": [
+        "requirement_id",
+        "priority",
+        "description",
+        "acceptance_criteria"
+      ],
+      "properties": {
+        "requirement_id": {
+          "type": "string",
+          "pattern": "^FR-[0-9]{3}$",
+          "description": "Unique requirement ID (e.g., FR-001)"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["Must", "Should", "Could"],
+          "description": "MoSCoW priority"
+        },
+        "description": {
+          "type": "string",
+          "pattern": "^The system shall",
+          "description": "Requirement in 'The system shall...' format"
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Why this requirement exists"
+        },
+        "acceptance_criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["criterion"],
+            "properties": {
+              "criterion_id": { "type": "string" },
+              "criterion": {
+                "type": "string",
+                "description": "Testable acceptance criterion"
+              },
+              "test_method": {
+                "type": "string",
+                "enum": ["manual", "automated", "review", "demo"]
+              }
+            }
+          }
+        },
+        "source_references": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/source_reference" }
+        },
+        "confidence_level": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "description": "How confident the LLM is about this requirement"
+        },
+        "related_requirements": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "IDs of related requirements"
+        },
+        "user_stories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^As a .+, I want .+, so that .+$"
+          }
+        }
+      }
+    }
+  }
+}
+

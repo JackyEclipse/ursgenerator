@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URS Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-brand">
+                <div class="company-logo">
+                    <span class="company-name">ECLIPSE</span>
+                    <span class="company-subtitle">AUTOMATION</span>
+                </div>
+                <div class="brand-divider"></div>
+                <div class="brand-text">
+                    <h1>URS Generator</h1>
+                </div>
+            </div>
+            <nav class="header-nav">
+                <button class="nav-btn active" data-view="intake">New Request</button>
+                <button class="nav-btn" data-view="review">Review</button>
+            </nav>
+            <div class="header-actions">
+                <span class="status-badge" id="session-status">No Active Session</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- View: Intake Form -->
+            <section class="view active" id="view-intake">
+                <!-- Welcome Section -->
+                <div class="welcome-section">
+                    <div class="welcome-row">
+                        <div class="welcome-label gold">Who are we?</div>
+                        <div class="welcome-text">
+                            <p class="welcome-lead">We are the Digital Innovation team.</p>
+                            <p>We build internal tools that reduce manual work, cut down errors, and make everyday processes easier.</p>
+                        </div>
+                    </div>
+                    <div class="welcome-row">
+                        <div class="welcome-label blue">What is this?</div>
+                        <div class="welcome-text">
+                            <p class="welcome-lead">A simple way to ask for help with automation.</p>
+                            <p>Describe the problem in your own words. No spec, workflow diagram, or template required.</p>
+                            <p>We turn your input into clear, actionable requirements the team can build from.</p>
+                        </div>
+                    </div>
+                    <div class="welcome-row">
+                        <div class="welcome-label green">How do I use it?</div>
+                        <div class="welcome-text">
+                            <p class="welcome-lead">Think of a process that feels painful, repetitive, or slow.</p>
+                            <p>Capture what happens today, who is involved, and what “better” would look like.</p>
+                            <p>Submit it once and the app will structure it into a URS we can review together.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form class="intake-form" id="intake-form">
+                    <!-- Project Info -->
+                    <div class="form-section">
+                        <h3 class="section-title">Project Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="title">Project Title *</label>
+                                <input type="text" id="title" name="title" required 
+                                       placeholder="e.g., Automated Invoice Processing System">
+                            </div>
+                            <div class="form-group">
+                                <label for="department">Department *</label>
+                                <select id="department" name="department" required>
+                                    <option value="">Select department...</option>
+                                    <option value="Toolroom">Toolroom</option>
+                                    <option value="Mechanical Design">Mechanical Design</option>
+                                    <option value="Controls">Controls</option>
+                                    <option value="Electrical Design">Electrical Design</option>
+                                    <option value="Project Management">Project Management</option>
+                                    <option value="Project Controls">Project Controls</option>
+                                    <option value="Application">Application</option>
+                                    <option value="Sales">Sales</option>
+                                    <option value="Quality">Quality</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="requestor-name">Your Name *</label>
+                                <input type="text" id="requestor-name" name="requestor_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="requestor-title">Your Title</label>
+                                <input type="text" id="requestor-title" name="requestor_title" placeholder="e.g., Project Manager, Engineer">
+                            </div>
+                            <div class="form-group">
+                                <label for="requestor-email">Your Email *</label>
+                                <input type="email" id="requestor-email" name="requestor_email" required>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- Problem Description with Tabs -->
+                    <div class="form-section">
+                        <h3 class="section-title">Describe the Problem *</h3>
+                        
+                        <!-- Tabs -->
+                        <div class="input-tabs">
+                            <button type="button" class="tab-btn active" data-tab="text">Free Text</button>
+                            <button type="button" class="tab-btn" data-tab="documents">Supporting Documents</button>
+                        </div>
+
+                        <div class="tab-content active" id="tab-text">
+                            <div class="form-group">
+                                <label for="raw-text">What process or task needs improvement?</label>
+                                <textarea id="raw-text" name="raw_text" rows="12" required
+                                          placeholder="Describe the problem you're trying to solve, what you need the system to do, and any constraints or deadlines..." style="min-height: 250px;"></textarea>
+                                <small class="form-hint">Be as detailed as possible. Include the current pain points and desired outcome.</small>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="tab-documents">
+                            <!-- File Upload -->
+                            <div class="form-group">
+                                <span class="field-label">Upload Files <span class="optional-inline">(optional)</span></span>
+                                <input type="file" id="file-input" name="files" multiple 
+                                       accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.eml" class="sr-only">
+                                <div class="file-upload-zone" id="file-upload-zone">
+                                    <div class="upload-prompt">
+                                        <span class="upload-icon">📎</span>
+                                        <p>Drag & drop files here or <button type="button" id="browse-btn" class="browse-link">click to browse</button></p>
+                                        <small>Supports: PDF, DOCX, TXT, PNG, JPG, EML</small>
+                                    </div>
+                                    <ul class="file-list" id="file-list"></ul>
+                                </div>
+                            </div>
+
+                            <!-- Meeting Notes / Email Thread -->
+                            <div class="form-group">
+                                <label for="meeting-notes">Meeting Notes / Email Threads <span class="optional-inline">(optional)</span></label>
+                                <textarea id="meeting-notes" name="meeting_notes" rows="5"
+                                          placeholder="Paste any relevant meeting notes, email conversations, or other context here..."></textarea>
+                                <small class="form-hint">Include any discussions, decisions, or requirements from meetings or emails.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Optional: Additional Context -->
+                    <div class="form-section collapsible">
+                        <button type="button" class="section-toggle" id="toggle-additional">
+                            <h3 class="section-title">Additional Context <span class="optional-tag">Optional but helpful</span></h3>
+                            <span class="toggle-icon-arrow">▼</span>
+                        </button>
+                        <div class="collapsible-content" id="additional-context">
+                            <p class="section-hint">Answering these questions helps us create more accurate requirements.</p>
+                            
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="primary-users">Who will be the primary users?</label>
+                                    <input type="text" id="primary-users" name="primary_users" 
+                                           placeholder="e.g., Project Managers, Engineers, Admin Staff">
+                                </div>
+                                <div class="form-group">
+                                    <label for="people-affected">How many people does this process currently affect?</label>
+                                    <input type="text" id="people-affected" name="people_affected" 
+                                           placeholder="e.g., 5-10 team members, entire department">
+                                </div>
+                                <div class="form-group">
+                                    <label for="hours-saved">Estimated hours saved per week if automated?</label>
+                                    <input type="text" id="hours-saved" name="hours_saved" 
+                                           placeholder="e.g., 10 hours, 2-3 hours per person">
+                                </div>
+                                <div class="form-group">
+                                    <label for="current-tools">What tools/systems are currently used?</label>
+                                    <input type="text" id="current-tools" name="current_tools" 
+                                           placeholder="e.g., Excel, SharePoint, Email, Paper forms">
+                                </div>
+                                <div class="form-group">
+                                    <label for="timeline">Is there a target deadline?</label>
+                                    <input type="text" id="timeline" name="timeline" 
+                                           placeholder="e.g., End of Q1, ASAP, No rush">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large">
+                            <span class="btn-text">Analyze & Extract Requirements</span>
+                            <span class="btn-loading" hidden>
+                                <span class="spinner"></span>
+                                Processing...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+
+            <!-- View: URS Document Editor -->
+            <section class="view" id="view-review">
+                <div class="document-header">
+                    <div class="document-meta">
+                        <span class="doc-id" id="urs-id">URS-0000-0000</span>
+                        <span class="doc-status">Draft</span>
+                    </div>
+                    <h1 class="document-title" id="urs-title" contenteditable="true">User Requirements Specification</h1>
+                    <p class="document-subtitle">Click any text to edit. Changes are saved automatically.</p>
+                </div>
+
+                <article class="document-body" id="urs-content">
+                    <div class="empty-state">
+                        <p>No URS generated yet. Complete the intake process first.</p>
+                    </div>
+                </article>
+
+                <div class="document-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-regenerate">
+                        Regenerate
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btn-export-pdf">
+                        Export PDF
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btn-export-word" title="Downloads as .doc file. If no extension appears, rename the file to add .doc">
+                        Export Word (.doc)
+                    </button>
+                    <button type="button" class="btn btn-primary" id="btn-send-email">
+                        Send to Digital Transformation
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container" id="toast-container"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+
