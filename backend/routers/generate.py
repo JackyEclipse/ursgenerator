@@ -171,7 +171,9 @@ async def _generate_urs_from_chunks(session: dict, chunks: List, answers: List) 
     import json
     
     urs_id = session.get("urs_id", f"URS-{datetime.utcnow().year}-0001")
-    title = session.get("title", "Untitled Requirements")
+    raw_title = session.get("title", "Untitled Requirements")
+    # Ensure title meets minimum length (10 chars) for Pydantic validation
+    title = raw_title if len(raw_title) >= 10 else f"{raw_title} - Requirements"
     requestor = session.get("requestor", {"name": "Unknown", "email": "unknown@company.com"})
     department = session.get("department", "Unknown")
     classification = session.get("data_classification", "INTERNAL")
