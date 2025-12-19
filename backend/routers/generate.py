@@ -114,10 +114,8 @@ async def generate_urs(request: GenerateRequest):
         )
         session_chunks = [placeholder_chunk]
     
-    # TODO: Call Stage 3 LLM prompt to generate URS
-    # For now, generate a structured example based on content
-    
-    generated_urs = _generate_urs_from_chunks(session, session_chunks, session_answers)
+    # Call LLM to generate URS from chunks
+    generated_urs = await _generate_urs_from_chunks(session, session_chunks, session_answers)
     
     # Store the generated URS
     urs_documents[urs_id] = generated_urs
@@ -175,12 +173,13 @@ async def regenerate_urs(urs_id: str, sections: List[str] = None):
 # Helper Functions
 # ============================================================================
 
-def _generate_urs_from_chunks(session: dict, chunks: List, answers: List) -> URS:
+async def _generate_urs_from_chunks(session: dict, chunks: List, answers: List) -> URS:
     """
     Generate a URS document from chunks and answers.
     Uses LLM service (mock or real) to generate professional content.
     """
     from services.llm_service import get_llm_service
+    import json
     
     urs_id = session.get("urs_id", f"URS-{datetime.utcnow().year}-0001")
     title = session.get("title", "Untitled Requirements")
@@ -205,8 +204,58 @@ def _generate_urs_from_chunks(session: dict, chunks: List, answers: List) -> URS
     
     # Get LLM service for URS generation
     llm_service = get_llm_service()
-    llm_response = llm_service._mock_response(f"Generate URS requirements for: {title}")
-    llm_urs = llm_response.get("content", {})
+    
+    # Build the prompt for real LLM generation
+    system_prompt = """You are a requirements analyst. Generate a User Requirements Specification (URS) in JSON format.
+Output ONLY valid JSON with this structure:
+{
+  "executive_summary": {"summary": "...", "business_value": "..."},
+  "problem_statement": {
+    "current_state": "description of current situation",
+    "pain_points": [{"description": "...", "impact": "High/Medium/Low"}],
+    "desired_state": "what they want to achieve"
+  },
+  "functional_requirements": [
+    {
+      "requirement_id": "FR-001",
+      "priority": "Must/Should/Could",
+      "description": "The system shall...",
+      "rationale": "why this is needed",
+      "acceptance_criteria": [{"criterion": "specific testable criterion"}],
+      "confidence_level": "high/medium/low"
+    }
+  ]
+}
+Generate 5-7 functional requirements. Use "Must" for critical, "Should" for important, "Could" for nice-to-have.
+Base requirements on the actual input content. Mark assumptions clearly."""
+
+    user_prompt = f"""Generate URS requirements for this project:
+
+Title: {title}
+Department: {department}
+Requestor: {requestor.get('name', 'Unknown')}
+
+Input Content:
+{all_content[:3000]}
+
+Generate practical, specific requirements based on this input."""
+
+    # Call LLM (real or mock depending on settings)
+    llm_response = await llm_service.call(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        response_format={"type": "json_object"}
+    )
+    
+    # Parse LLM response
+    llm_content = llm_response.get("content", {})
+    if isinstance(llm_content, str):
+        try:
+            llm_urs = json.loads(llm_content)
+        except json.JSONDecodeError:
+            llm_urs = {}
+    else:
+        llm_urs = llm_content
     
     # Build functional requirements from LLM response
     functional_reqs = []
