@@ -238,46 +238,89 @@ Generate practical, specific requirements based on this input."""
     
     # Parse LLM response
     llm_content = llm_response.get("content", {})
+    logger = logging.getLogger(__name__)
+    logger.info(f"LLM response type: {type(llm_content)}")
+    
     if isinstance(llm_content, str):
         try:
             llm_urs = json.loads(llm_content)
-        except json.JSONDecodeError:
+            logger.info(f"Parsed LLM JSON successfully")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse LLM JSON: {e}")
             llm_urs = {}
     else:
         llm_urs = llm_content
     
+    logger.info(f"LLM URS keys: {llm_urs.keys() if isinstance(llm_urs, dict) else 'not a dict'}")
+    
+    # Helper to normalize priority values
+    def normalize_priority(p):
+        p_lower = str(p).lower().strip()
+        if p_lower in ["must", "critical", "high"]:
+            return Priority.MUST
+        elif p_lower in ["should", "important", "medium"]:
+            return Priority.SHOULD
+        elif p_lower in ["could", "nice", "low", "enhancement"]:
+            return Priority.COULD
+        return Priority.SHOULD  # Default
+    
+    # Helper to normalize confidence levels
+    def normalize_confidence(c):
+        c_lower = str(c).lower().strip()
+        if c_lower == "high":
+            return ConfidenceLevel.HIGH
+        elif c_lower == "low":
+            return ConfidenceLevel.LOW
+        return ConfidenceLevel.MEDIUM  # Default
+    
     # Build functional requirements from LLM response
     functional_reqs = []
     llm_func_reqs = llm_urs.get("functional_requirements", [])
+    logger.info(f"Found {len(llm_func_reqs)} functional requirements from LLM")
+    
     for idx, req_data in enumerate(llm_func_reqs):
-        # Assign real chunk refs to first few, mark rest as assumptions
-        has_source = idx < len(chunk_refs)
-        refs = [chunk_refs[idx % len(chunk_refs)]] if chunk_refs else []
-        if not has_source and idx > 2:
-            refs = [SourceReference(
-                chunk_id="N/A",
-                source_type="assumption",
-                source_name="Generated",
-                excerpt="Inferred from context",
-                is_assumption=True,
-            )]
-        
-        functional_reqs.append(FunctionalRequirement(
-            requirement_id=req_data.get("requirement_id", f"FR-{idx+1:03d}"),
-            priority=Priority(req_data.get("priority", "Must")),
-            description=req_data.get("description", ""),
-            rationale=req_data.get("rationale", ""),
-            acceptance_criteria=[
-                AcceptanceCriterion(
+        try:
+            # Assign real chunk refs to first few, mark rest as assumptions
+            has_source = idx < len(chunk_refs)
+            refs = [chunk_refs[idx % len(chunk_refs)]] if chunk_refs else []
+            if not has_source and idx > 2:
+                refs = [SourceReference(
+                    chunk_id="N/A",
+                    source_type="assumption",
+                    source_name="Generated",
+                    excerpt="Inferred from context",
+                    is_assumption=True,
+                )]
+            
+            # Handle acceptance criteria - could be string or dict
+            acc_criteria = []
+            for i, ac in enumerate(req_data.get("acceptance_criteria", [])):
+                if isinstance(ac, str):
+                    criterion_text = ac
+                elif isinstance(ac, dict):
+                    criterion_text = ac.get("criterion", str(ac))
+                else:
+                    criterion_text = str(ac)
+                acc_criteria.append(AcceptanceCriterion(
                     criterion_id=f"{req_data.get('requirement_id', f'FR-{idx+1:03d}')}-AC{i+1}",
-                    criterion=ac.get("criterion", ""),
+                    criterion=criterion_text,
                     test_method="manual",
-                )
-                for i, ac in enumerate(req_data.get("acceptance_criteria", []))
-            ],
-            source_references=refs,
-            confidence_level=ConfidenceLevel(req_data.get("confidence_level", "medium")),
-        ))
+                ))
+            
+            functional_reqs.append(FunctionalRequirement(
+                requirement_id=req_data.get("requirement_id", f"FR-{idx+1:03d}"),
+                priority=normalize_priority(req_data.get("priority", "Should")),
+                description=req_data.get("description", "Requirement not specified"),
+                rationale=req_data.get("rationale", ""),
+                acceptance_criteria=acc_criteria if acc_criteria else [
+                    AcceptanceCriterion(criterion_id=f"FR-{idx+1:03d}-AC1", criterion="To be defined", test_method="manual")
+                ],
+                source_references=refs,
+                confidence_level=normalize_confidence(req_data.get("confidence_level", "medium")),
+            ))
+        except Exception as e:
+            logger.error(f"Error processing requirement {idx}: {e}")
+            continue
     
     # Build pain points from LLM response
     pain_points = []
