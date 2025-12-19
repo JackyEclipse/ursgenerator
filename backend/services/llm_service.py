@@ -38,12 +38,17 @@ class LLMService:
         self.temperature = settings.llm_temperature
         self.max_tokens = settings.llm_max_tokens
         
+        logger.info(f"LLM Service initializing: mode={self.mode}, provider={self.provider}, model={self.model}")
+        logger.info(f"Groq API key present: {bool(settings.groq_api_key)}")
+        
         # Initialize client based on provider (only if real mode)
         self._client = None
         if self.mode == "real":
             self._init_client()
         else:
             logger.info("LLM Service running in MOCK mode")
+        
+        logger.info(f"LLM client initialized: {self._client is not None}")
         
         # Token tracking
         self.total_input_tokens = 0

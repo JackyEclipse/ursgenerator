@@ -41,105 +41,94 @@ urs_documents = {}  # urs_id -> URS
 async def generate_urs(request: GenerateRequest):
     """
     Generate a complete URS document from ingested and clarified content.
-    
-    This endpoint runs Stage 3 of the LLM pipeline to:
-    1. Synthesize all source chunks and answers
-    2. Generate structured requirements with citations
-    3. Mark assumptions explicitly
-    4. Assign confidence levels to each requirement
-    
-    ## Output
-    - Complete URS following the canonical schema
-    - Every requirement linked to source chunks
-    - Assumptions labeled with [ASSUMPTION] tag
-    - Confidence levels (high/medium/low) for each requirement
-    
-    ## Options
-    - **skip_clarification**: Generate even if questions are unanswered (not recommended)
     """
+    import logging
+    logger = logging.getLogger(__name__)
     
     session_id = request.session_id
+    logger.info(f"Generate URS request for session: {session_id}")
     
-    # Get session data
-    from routers.ingest import sessions, chunks
-    
-    # If session was lost (Render restart), create a minimal one
-    if session_id not in sessions:
-        sessions[session_id] = {
-            "urs_id": request.urs_id or f"URS-{datetime.utcnow().year}-{len(sessions)+1:04d}",
-            "title": "Generated Requirements",
-            "requestor": {"name": "User", "email": "user@company.com"},
-            "department": "General",
-            "data_classification": "INTERNAL",
-            "created_at": datetime.utcnow(),
-            "status": "recovered",
-            "chunk_ids": [],
-        }
-    
-    session = sessions[session_id]
-    urs_id = request.urs_id or session.get("urs_id", f"URS-{datetime.utcnow().year}-0001")
-    
-    from routers.clarify import clarifying_questions, answers
-    
-    # Check if clarification is complete (skip check for MVP - always allow generation)
-    questions = clarifying_questions.get(session_id, [])
-    session_answers = answers.get(session_id, [])
-    answered_ids = {a.question_id for a in session_answers}
-    unanswered = [q for q in questions if q.question_id not in answered_ids]
-    
-    # For MVP, we skip the clarification check since we're not using it
-    # The frontend always passes skip_clarification=true anyway
-    # if unanswered and not request.skip_clarification:
-    #     raise HTTPException(
-    #         status_code=400,
-    #         detail=f"{len(unanswered)} clarifying questions remain unanswered. "
-    #                f"Answer them or set skip_clarification=true."
-    #     )
-    
-    # Get all chunks for this session
-    session_chunks = [chunks[cid] for cid in session.get("chunk_ids", []) if cid in chunks]
-    
-    # If chunks were lost (server restart), create a placeholder
-    # This handles Render free tier restarts between API calls
-    if not session_chunks:
-        from models.ingest import SourceChunk, SourceType
-        import hashlib
-        placeholder_chunk = SourceChunk(
-            chunk_id=f"placeholder-{session_id[:8]}",
-            source_id=f"src-{session_id[:8]}",
-            source_type=SourceType.USER_INPUT,
-            source_name="user_input",
-            content=session.get("title", "User requirements input"),
-            content_hash=hashlib.sha256(session_id.encode()).hexdigest()[:16],
+    try:
+        # Get session data
+        from routers.ingest import sessions, chunks
+        
+        # If session was lost (Render restart), create a minimal one
+        if session_id not in sessions:
+            logger.info(f"Session {session_id} not found, creating recovery session")
+            sessions[session_id] = {
+                "urs_id": request.urs_id or f"URS-{datetime.utcnow().year}-{len(sessions)+1:04d}",
+                "title": "Generated Requirements",
+                "requestor": {"name": "User", "email": "user@company.com"},
+                "department": "General",
+                "data_classification": "INTERNAL",
+                "created_at": datetime.utcnow(),
+                "status": "recovered",
+                "chunk_ids": [],
+            }
+        
+        session = sessions[session_id]
+        urs_id = request.urs_id or session.get("urs_id", f"URS-{datetime.utcnow().year}-0001")
+        logger.info(f"Using URS ID: {urs_id}")
+        
+        from routers.clarify import clarifying_questions, answers
+        
+        # Check if clarification is complete (skip check for MVP - always allow generation)
+        questions = clarifying_questions.get(session_id, [])
+        session_answers = answers.get(session_id, [])
+        answered_ids = {a.question_id for a in session_answers}
+        unanswered = [q for q in questions if q.question_id not in answered_ids]
+        
+        # Get all chunks for this session
+        session_chunks = [chunks[cid] for cid in session.get("chunk_ids", []) if cid in chunks]
+        logger.info(f"Found {len(session_chunks)} chunks for session")
+        
+        # If chunks were lost (server restart), create a placeholder
+        if not session_chunks:
+            logger.info("No chunks found, creating placeholder")
+            from models.ingest import SourceChunk, SourceType
+            import hashlib
+            placeholder_chunk = SourceChunk(
+                chunk_id=f"placeholder-{session_id[:8]}",
+                source_id=f"src-{session_id[:8]}",
+                source_type=SourceType.USER_INPUT,
+                source_name="user_input",
+                content=session.get("title", "User requirements input"),
+                content_hash=hashlib.sha256(session_id.encode()).hexdigest()[:16],
+            )
+            session_chunks = [placeholder_chunk]
+        
+        # Call LLM to generate URS from chunks
+        logger.info("Calling LLM to generate URS...")
+        generated_urs = await _generate_urs_from_chunks(session, session_chunks, session_answers)
+        logger.info("URS generated successfully")
+        
+        # Store the generated URS
+        urs_documents[urs_id] = generated_urs
+        
+        # Count assumptions and low-confidence items
+        assumptions_count = _count_assumptions(generated_urs)
+        low_confidence_count = _count_low_confidence(generated_urs)
+        
+        warnings = []
+        if assumptions_count > 0:
+            warnings.append(f"{assumptions_count} assumptions were made due to incomplete information")
+        if low_confidence_count > 0:
+            warnings.append(f"{low_confidence_count} requirements have low confidence - review recommended")
+        if unanswered:
+            warnings.append(f"{len(unanswered)} clarifying questions were skipped")
+        
+        return GenerateResponse(
+            urs_id=urs_id,
+            status="success",
+            urs=generated_urs.model_dump(),
+            warnings=warnings,
+            assumptions_made=assumptions_count,
+            low_confidence_requirements=low_confidence_count,
         )
-        session_chunks = [placeholder_chunk]
     
-    # Call LLM to generate URS from chunks
-    generated_urs = await _generate_urs_from_chunks(session, session_chunks, session_answers)
-    
-    # Store the generated URS
-    urs_documents[urs_id] = generated_urs
-    
-    # Count assumptions and low-confidence items
-    assumptions_count = _count_assumptions(generated_urs)
-    low_confidence_count = _count_low_confidence(generated_urs)
-    
-    warnings = []
-    if assumptions_count > 0:
-        warnings.append(f"{assumptions_count} assumptions were made due to incomplete information")
-    if low_confidence_count > 0:
-        warnings.append(f"{low_confidence_count} requirements have low confidence - review recommended")
-    if unanswered:
-        warnings.append(f"{len(unanswered)} clarifying questions were skipped")
-    
-    return GenerateResponse(
-        urs_id=urs_id,
-        status="success",
-        urs=generated_urs.model_dump(),
-        warnings=warnings,
-        assumptions_made=assumptions_count,
-        low_confidence_requirements=low_confidence_count,
-    )
+    except Exception as e:
+        logger.error(f"Error generating URS: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate URS: {str(e)}")
 
 
 @router.post("/generate-urs/{urs_id}/regenerate")
