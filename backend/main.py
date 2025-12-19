@@ -148,7 +148,10 @@ async def health_check():
     return {
         "status": "healthy",
         "version": settings.app_version,
+        "llm_mode": settings.llm_mode,
         "llm_provider": settings.llm_provider,
+        "llm_model": settings.llm_model,
+        "groq_key_set": bool(settings.groq_api_key),
         "timestamp": datetime.utcnow().isoformat()
     }
 
