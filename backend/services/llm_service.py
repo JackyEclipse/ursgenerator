@@ -4,6 +4,7 @@ LLM Service - Handles all interactions with language models.
 Supports:
 - OpenAI (GPT-4, GPT-4 Turbo)
 - Azure OpenAI
+- Groq (Llama 3.3, Mixtral - FREE!)
 
 Features:
 - Rate limiting
@@ -51,7 +52,15 @@ class LLMService:
     def _init_client(self):
         """Initialize the LLM client based on provider configuration."""
         try:
-            if self.provider == "openai":
+            if self.provider == "groq":
+                from openai import AsyncOpenAI
+                # Groq uses OpenAI-compatible API
+                self._client = AsyncOpenAI(
+                    api_key=settings.groq_api_key,
+                    base_url="https://api.groq.com/openai/v1"
+                )
+                logger.info(f"Initialized Groq client with model: {self.model}")
+            elif self.provider == "openai":
                 from openai import AsyncOpenAI
                 self._client = AsyncOpenAI(api_key=settings.openai_api_key)
             elif self.provider == "azure":
@@ -102,8 +111,14 @@ class LLMService:
         
         for attempt in range(max_retries):
             try:
+                # For Groq and OpenAI, use self.model directly
+                # For Azure, use the deployment name
+                model_name = self.model
+                if self.provider == "azure":
+                    model_name = settings.azure_openai_deployment
+                
                 kwargs = {
-                    "model": self.model if self.provider == "openai" else settings.azure_openai_deployment,
+                    "model": model_name,
                     "messages": messages,
                     "temperature": self.temperature,
                     "max_tokens": self.max_tokens,

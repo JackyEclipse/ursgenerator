@@ -21,11 +21,12 @@ class Settings(BaseSettings):
     azure_openai_endpoint: Optional[str] = None
     azure_openai_key: Optional[str] = None
     azure_openai_deployment: Optional[str] = None
+    groq_api_key: Optional[str] = None
     
     # LLM Settings
-    llm_mode: str = "mock"  # "mock" or "real"
-    llm_provider: str = "openai"  # "openai" or "azure"
-    llm_model: str = "gpt-4o-mini"
+    llm_mode: str = "real"  # "mock" or "real"
+    llm_provider: str = "groq"  # "openai", "azure", or "groq"
+    llm_model: str = "llama-3.3-70b-versatile"  # Groq's best free model
     llm_temperature: float = 0.1  # Low temp for deterministic outputs
     llm_max_tokens: int = 4096
     
