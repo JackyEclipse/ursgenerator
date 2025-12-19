@@ -237,6 +237,7 @@ Generate practical, specific requirements based on this input."""
     )
     
     # Parse LLM response
+    import logging
     llm_content = llm_response.get("content", {})
     logger = logging.getLogger(__name__)
     logger.info(f"LLM response type: {type(llm_content)}")
